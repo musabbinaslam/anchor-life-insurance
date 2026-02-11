@@ -342,6 +342,8 @@ h4 {
   height: 48px;
   width: auto;
   object-fit: contain;
+  /* Blend white-background JPG into dark navbar */
+  filter: invert(1) hue-rotate(180deg) contrast(1.1) brightness(1.1);
 }
 
 .logo-text {
