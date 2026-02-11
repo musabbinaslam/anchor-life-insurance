@@ -214,7 +214,32 @@ if (document.getElementById('scrollTop')) {
 }
 
 // ─── CHATBOT LOGIC ───
-const GEMINI_API_KEY = "AIzaSyClROpz7o9siEi-4D_DsIk0Ikq3CgERVAo"; // Activated ⚓️
+const GEMINI_KEY = "AIzaSyClROpz7o9siEi-4D_DsIk0Ikq3CgERVAo";
+
+const SARAH_SYSTEM = `You are Sarah, a warm and knowledgeable insurance agent at Anchor Line Insurance, a Florida-based independent agency.
+
+WHAT WE OFFER:
+- Home Insurance (dwelling, personal property, liability, additional living expenses)
+- Auto Insurance (liability, collision, comprehensive, uninsured motorist, PIP)
+- Life Insurance (term life, whole life, universal life)
+- Flood Insurance (separate from home — required in many FL zones)
+- Boat & Watercraft Insurance (hull, liability, uninsured boater)
+- Motorcycle Insurance (liability, collision, comprehensive, accessories)
+- Commercial / Business Insurance (general liability, commercial property, workers comp, BOP)
+
+AGENCY INFO:
+- Phone: (239) 542-1117
+- Locations: 3 offices across Florida
+- 20+ carrier partners for the best rates
+- Licensed in the state of Florida
+
+RULES:
+1. Be brief, friendly, and human. Use 2-3 sentences max per response.
+2. Answer the user's question using the service knowledge above.
+3. Do NOT show phone numbers or CTAs in your text — the UI handles that.
+4. If someone mentions an accident, injury, or loss, lead with empathy first.
+5. If you don't know something specific (like exact pricing), say you'd love to look into it for them.
+6. Keep the conversation going naturally. Ask a follow-up question when appropriate.`;
 
 function initChat() {
     const chatToggle = document.getElementById('chatToggle');
@@ -224,142 +249,110 @@ function initChat() {
     const chatInput = document.getElementById('chatInput');
     const chatSend = document.getElementById('chatSend');
 
-    let chatInitialized = false;
+    let history = [];   // conversation memory for Gemini
+    let turns = 0;      // track user message count
 
-    const botMessages = [
-        { text: "Hi there! I'm Sarah. I noticed you're checking out our insurance options. Need any help finding the right coverage?", delay: 1500 },
-        { text: "Most people find it easiest to just give us a quick call to get an accurate quote in minutes.", delay: 2500, hasOptions: true }
-    ];
-
-    function addMessage(text, sender = 'bot') {
-        const msg = document.createElement('div');
-        msg.className = `chat-msg ${sender}`;
-        msg.textContent = text;
-        chatBody.appendChild(msg);
+    function addMsg(text, sender = 'bot') {
+        const el = document.createElement('div');
+        el.className = `chat-msg ${sender}`;
+        el.textContent = text;
+        chatBody.appendChild(el);
         chatBody.scrollTop = chatBody.scrollHeight;
     }
 
     function showTyping() {
-        const typing = document.createElement('div');
-        typing.className = 'typing-indicator';
-        typing.id = 'typing';
-        typing.innerHTML = '<span></span><span></span><span></span>';
-        chatBody.appendChild(typing);
+        const t = document.createElement('div');
+        t.className = 'typing-indicator';
+        t.innerHTML = '<span></span><span></span><span></span>';
+        chatBody.appendChild(t);
         chatBody.scrollTop = chatBody.scrollHeight;
-        return typing;
+        return t;
     }
 
-    function handleOptionClick(type) {
-        addMessage(type === 'quote' ? "I'd like to start an online quote." : "I'd like to message an agent.", 'user');
-        setTimeout(async () => {
-            const typing = showTyping();
-            await new Promise(r => setTimeout(r, 1200));
-            typing.remove();
-            if (type === 'quote') {
-                addMessage("Great! I'm taking you to our quote form now. One of our specialists will review it as soon as it's submitted.", 'bot');
-                setTimeout(() => window.location.hash = '#/quote', 800);
-            } else {
-                addMessage("I'll open the contact page for you. Our team usually responds within 15 minutes during office hours!", 'bot');
-                setTimeout(() => window.location.hash = '#/contact', 800);
-            }
-        }, 500);
-    }
-
-    // Attach to window for onclick handlers
-    window.sarahAction = handleOptionClick;
-    window.sarahMsg = addMessage;
-
-    function addOptions() {
-        const options = document.createElement('div');
-        options.className = 'chat-options';
-        options.innerHTML = `
-            <a href="tel:2395421117" class="chat-opt primary" onclick="sarahMsg('I want to call the agency.', 'user')">📞 Call Agency Now</a>
-            <button class="chat-opt" onclick="sarahAction('quote')">📝 Start Online Quote</button>
-            <button class="chat-opt" onclick="sarahAction('contact')">✉️ Message an Agent</button>
+    function showCTA() {
+        const wrap = document.createElement('div');
+        wrap.className = 'chat-options';
+        wrap.innerHTML = `
+            <a href="tel:2395421117" class="chat-opt primary">📞 Call Us — (239) 542-1117</a>
+            <button class="chat-opt" onclick="window.location.hash='#/quote'">📝 Get a Free Quote Online</button>
+            <button class="chat-opt" onclick="window.location.hash='#/contact'">✉️ Send Us a Message</button>
         `;
-        chatBody.appendChild(options);
+        chatBody.appendChild(wrap);
         chatBody.scrollTop = chatBody.scrollHeight;
     }
 
-    async function getAIResponse(userText) {
-        if (!GEMINI_API_KEY) {
-            return "I'm sorry, I'm still learning! For specific questions, it's best to call us at (239) 542-1117 or use the 'Get a Quote' button.";
-        }
+    async function askSarah(userText) {
+        // Build conversation with system context
+        history.push({ role: 'user', parts: [{ text: userText }] });
 
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: `You are Sarah, a highly helpful, empathetic, and professional insurance expert at Anchor Line Insurance in Florida. Your goal is to answer questions about Home, Auto, Life, and Business insurance accurately but briefly. ALWAYS end your response by suggesting a quick phone call to (239) 542-1117 for the most accurate quote. If someone mentions an accident or claim, express genuine concern first. User says: ${userText}` }] }]
-                })
-            });
-            const data = await response.json();
-            return data.candidates[0].content.parts[0].text;
-        } catch (e) {
-            return "I'm having a little trouble connecting. Could you please give our office a call at (239) 542-1117?";
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        system_instruction: { parts: [{ text: SARAH_SYSTEM }] },
+                        contents: history
+                    })
+                }
+            );
+            const data = await res.json();
+            const reply = data.candidates[0].content.parts[0].text;
+            history.push({ role: 'model', parts: [{ text: reply }] });
+            return reply;
+        } catch {
+            return "I'm having a little trouble right now — but our team would love to help you directly!";
         }
     }
 
-    async function handleChatSubmit() {
+    async function handleSubmit() {
         const text = chatInput.value.trim();
         if (!text) return;
-
         chatInput.value = '';
-        addMessage(text, 'user');
+
+        addMsg(text, 'user');
+        turns++;
 
         const typing = showTyping();
-        const responseText = await getAIResponse(text);
-        if (typing) typing.remove();
+        const reply = await askSarah(text);
+        typing.remove();
+        addMsg(reply, 'bot');
 
-        addMessage(responseText, 'bot');
-
-        // After Sarah speaks via AI, give the user the conversion options again
-        setTimeout(() => {
-            addOptions();
-        }, 1000);
+        // After 2+ user messages, show call/form options
+        if (turns >= 2) {
+            setTimeout(() => showCTA(), 800);
+            turns = 0; // reset so it doesn't spam on every msg after
+        }
     }
 
-    async function startSarahFlow() {
-        if (chatInitialized) return;
-        chatInitialized = true;
+    // ── Opening flow ──
+    async function startFlow() {
+        const greet = "Hey there! 👋 I'm Sarah from Anchor Line Insurance. What type of coverage are you looking for today?";
+        const typing = showTyping();
+        await new Promise(r => setTimeout(r, 1500));
+        typing.remove();
+        addMsg(greet);
 
-        for (const msg of botMessages) {
-            const typing = showTyping();
-            const waitTime = Math.min(3000, Math.max(1200, msg.text.length * 30));
-            await new Promise(r => setTimeout(r, waitTime));
-            typing.remove();
-            addMessage(msg.text);
-            if (msg.hasOptions) {
-                await new Promise(r => setTimeout(r, 800));
-                addOptions();
-            }
-        }
-
-        // Enable input after flow
         chatInput.readOnly = false;
+        chatInput.placeholder = "Ask me anything about insurance...";
         chatSend.disabled = false;
     }
 
+    // ── Event listeners ──
     chatToggle.addEventListener('click', () => {
         chatWindow.classList.add('open');
-        chatToggle.style.opacity = '0';
-        chatToggle.style.pointerEvents = 'none';
-        startSarahFlow();
+        chatToggle.style.display = 'none';
+        if (!history.length) startFlow();
     });
 
     chatClose.addEventListener('click', () => {
         chatWindow.classList.remove('open');
-        setTimeout(() => {
-            chatToggle.style.opacity = '1';
-            chatToggle.style.pointerEvents = 'auto';
-        }, 300);
+        setTimeout(() => { chatToggle.style.display = 'flex'; }, 300);
     });
 
-    chatSend.addEventListener('click', handleChatSubmit);
-    chatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleChatSubmit();
-    });
+    chatSend.addEventListener('click', handleSubmit);
+    chatInput.addEventListener('keypress', e => { if (e.key === 'Enter') handleSubmit(); });
 }
 
 // Initialize all features
