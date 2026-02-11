@@ -247,13 +247,33 @@ function initChat() {
         return typing;
     }
 
+    function handleOptionClick(type) {
+        addMessage(type === 'quote' ? "I'd like to start an online quote." : "I'd like to message an agent.", 'user');
+        setTimeout(async () => {
+            const typing = showTyping();
+            await new Promise(r => setTimeout(r, 1200));
+            typing.remove();
+            if (type === 'quote') {
+                addMessage("Great! I'm taking you to our quote form now. One of our specialists will review it as soon as it's submitted.", 'bot');
+                setTimeout(() => window.location.hash = '#/quote', 800);
+            } else {
+                addMessage("I'll open the contact page for you. Our team usually responds within 15 minutes during office hours!", 'bot');
+                setTimeout(() => window.location.hash = '#/contact', 800);
+            }
+        }, 500);
+    }
+
+    // Attach to window for onclick handlers
+    window.sarahAction = handleOptionClick;
+    window.sarahMsg = addMessage;
+
     function addOptions() {
         const options = document.createElement('div');
         options.className = 'chat-options';
         options.innerHTML = `
-            <a href="tel:2395421117" class="chat-opt primary">📞 Call Agency Now</a>
-            <button class="chat-opt" onclick="window.location.hash='#/quote'">📝 Start Online Quote</button>
-            <button class="chat-opt" onclick="window.location.hash='#/contact'">✉️ Message an Agent</button>
+            <a href="tel:2395421117" class="chat-opt primary" onclick="sarahMsg('I want to call the agency.', 'user')">📞 Call Agency Now</a>
+            <button class="chat-opt" onclick="sarahAction('quote')">📝 Start Online Quote</button>
+            <button class="chat-opt" onclick="sarahAction('contact')">✉️ Message an Agent</button>
         `;
         chatBody.appendChild(options);
         chatBody.scrollTop = chatBody.scrollHeight;
@@ -265,7 +285,9 @@ function initChat() {
 
         for (const msg of botMessages) {
             const typing = showTyping();
-            await new Promise(r => setTimeout(r, msg.delay));
+            // Variable typing speed for human feel
+            const waitTime = Math.min(3000, Math.max(1200, msg.text.length * 30));
+            await new Promise(r => setTimeout(r, waitTime));
             typing.remove();
             addMessage(msg.text);
             if (msg.hasOptions) {
