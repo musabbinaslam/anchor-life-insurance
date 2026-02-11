@@ -282,27 +282,27 @@ function initChat() {
     }
 
     async function askSarah(userText) {
+        // Standard payload: Prime Sarah by putting her "brain" as the first message
+        const contents = [
+            { role: 'user', parts: [{ text: SARAH_SYSTEM }] },
+            { role: 'model', parts: [{ text: "Understood. I'm ready to help Anchor Line clients." }] },
+            ...history,
+            { role: 'user', parts: [{ text: userText }] }
+        ];
+
         try {
             const res = await fetch(
                 `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        system_instruction: {
-                            parts: [{ text: SARAH_SYSTEM }]
-                        },
-                        contents: [
-                            ...history,
-                            { role: 'user', parts: [{ text: userText }] }
-                        ]
-                    })
+                    body: JSON.stringify({ contents })
                 }
             );
 
             const data = await res.json();
 
-            if (res.ok && data.candidates && data.candidates[0]) {
+            if (res.ok && data.candidates && data.candidates[0].content) {
                 const reply = data.candidates[0].content.parts[0].text;
 
                 // Track conversation history
@@ -311,12 +311,11 @@ function initChat() {
 
                 return reply;
             } else {
-                console.error("Gemini API Error:", data);
-                return "I'm sorry, I'm having a moment! But I'd still love to help you — would you like to give our office a quick call?";
+                console.error("Gemini Details:", data);
+                return "I'm having a little trouble connecting. Please check your internet or reach out to our office directly!";
             }
         } catch (e) {
-            console.error("Chat failure:", e);
-            return "I'm having a little trouble connecting right now, but feel free to call our agency directly!";
+            return "Connection lost. Feel free to call us at (239) 542-1117!";
         }
     }
 
