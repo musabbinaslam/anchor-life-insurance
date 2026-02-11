@@ -284,28 +284,40 @@ function initChat() {
     async function askSarah(userText) {
         history.push({ role: 'user', parts: [{ text: userText }] });
 
-        // Build contents: system context as first turn + conversation history
-        const contents = [
-            { role: 'user', parts: [{ text: SARAH_SYSTEM }] },
-            { role: 'model', parts: [{ text: "Got it! I'm Sarah and I'll follow these guidelines." }] },
-            ...history
-        ];
-
         try {
             const res = await fetch(
                 `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents })
+                    body: JSON.stringify({
+                        system_instruction: {
+                            parts: [{ text: SARAH_SYSTEM }]
+                        },
+                        contents: history
+                    })
                 }
             );
+
+            if (!res.ok) {
+                const errData = await res.json();
+                console.error("Gemini API Error:", errData);
+                return `Error (${res.status}): ${errData.error?.message || "Check API Key or quota."}`;
+            }
+
             const data = await res.json();
+
+            if (!data.candidates || !data.candidates[0]) {
+                console.warn("No candidates returned:", data);
+                return "Sarah is thinking... please try again in a moment.";
+            }
+
             const reply = data.candidates[0].content.parts[0].text;
             history.push({ role: 'model', parts: [{ text: reply }] });
             return reply;
-        } catch {
-            return "I'm having a little trouble right now — but our team would love to help you directly!";
+        } catch (e) {
+            console.error("Fetch failure:", e);
+            return "Connection lost. Please check your internet or API key.";
         }
     }
 
