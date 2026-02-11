@@ -282,53 +282,42 @@ function initChat() {
     }
 
     async function askSarah(userText) {
-        // Build a strictly alternating conversation: User -> Model -> User -> Model...
-        // We start with the system instruction baked into the first User message.
-        const contents = [
-            { role: 'user', parts: [{ text: SARAH_SYSTEM + "\n\nUser Question: " + userText }] }
-        ];
-
-        // Add history only if it's strictly alternating
-        history.forEach(msg => contents.push(msg));
-
-        const models = [
-            "gemini-1.5-flash",
-            "gemini-pro"
-        ];
-
-        for (const model of models) {
-            try {
-                // Try v1 first as it's the most stable
-                const res = await fetch(
-                    `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${GEMINI_KEY}`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents })
-                    }
-                );
-
-                const data = await res.json();
-
-                if (res.ok) {
-                    const reply = data.candidates[0].content.parts[0].text;
-                    history.push({ role: 'user', parts: [{ text: userText }] });
-                    history.push({ role: 'model', parts: [{ text: reply }] });
-                    return reply;
+        try {
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        system_instruction: {
+                            parts: [{ text: SARAH_SYSTEM }]
+                        },
+                        contents: [
+                            ...history,
+                            { role: 'user', parts: [{ text: userText }] }
+                        ]
+                    })
                 }
+            );
 
-                console.error(`Model ${model} failed with ${res.status}:`, data);
+            const data = await res.json();
 
-                // If the error is 403 or API not enabled, tell the user exactly what to do
-                if (res.status === 403 || (data.error && data.error.status === "PERMISSION_DENIED")) {
-                    return "Error: API not enabled. Please go to Google Cloud Console and enable the 'Generative Language API' for your project.";
-                }
-            } catch (e) {
-                console.error(`Network failure for ${model}:`, e);
+            if (res.ok && data.candidates && data.candidates[0]) {
+                const reply = data.candidates[0].content.parts[0].text;
+
+                // Track conversation history
+                history.push({ role: 'user', parts: [{ text: userText }] });
+                history.push({ role: 'model', parts: [{ text: reply }] });
+
+                return reply;
+            } else {
+                console.error("Gemini API Error:", data);
+                return "I'm sorry, I'm having a moment! But I'd still love to help you — would you like to give our office a quick call?";
             }
+        } catch (e) {
+            console.error("Chat failure:", e);
+            return "I'm having a little trouble connecting right now, but feel free to call our agency directly!";
         }
-
-        return "Connection failed (404). This usually means the 'Generative Language API' is not enabled for your API key. Please check your Google AI Studio settings.";
     }
 
     async function handleSubmit() {
