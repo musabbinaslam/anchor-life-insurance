@@ -202,11 +202,100 @@ function initForms() {
     });
 }
 // ─── SCROLL TOP ───
-const scrollTop = document.getElementById('scrollTop');
-window.addEventListener('scroll', () => {
-    scrollTop.classList.toggle('visible', window.scrollY > 500);
-}, { passive: true });
+if (document.getElementById('scrollTop')) {
+    const scrollTop = document.getElementById('scrollTop');
+    window.addEventListener('scroll', () => {
+        scrollTop.classList.toggle('visible', window.scrollY > 500);
+    }, { passive: true });
 
-scrollTop.addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollTop.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
+// ─── CHATBOT LOGIC ───
+function initChat() {
+    const chatToggle = document.getElementById('chatToggle');
+    const chatWindow = document.getElementById('chatWindow');
+    const chatClose = document.getElementById('chatClose');
+    const chatBody = document.getElementById('chatBody');
+    const chatInput = document.getElementById('chatInput');
+    const chatSend = document.getElementById('chatSend');
+
+    let chatInitialized = false;
+
+    const botMessages = [
+        { text: "Hi there! I'm Sarah. I noticed you're checking out our insurance options. Need any help finding the right coverage?", delay: 1500 },
+        { text: "Most people find it easiest to just give us a quick call to get an accurate quote in minutes.", delay: 2500, hasOptions: true }
+    ];
+
+    function addMessage(text, sender = 'bot') {
+        const msg = document.createElement('div');
+        msg.className = `chat-msg ${sender}`;
+        msg.textContent = text;
+        chatBody.appendChild(msg);
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    function showTyping() {
+        const typing = document.createElement('div');
+        typing.className = 'typing-indicator';
+        typing.id = 'typing';
+        typing.innerHTML = '<span></span><span></span><span></span>';
+        chatBody.appendChild(typing);
+        chatBody.scrollTop = chatBody.scrollHeight;
+        return typing;
+    }
+
+    function addOptions() {
+        const options = document.createElement('div');
+        options.className = 'chat-options';
+        options.innerHTML = `
+            <a href="tel:2395421117" class="chat-opt primary">📞 Call Agency Now</a>
+            <button class="chat-opt" onclick="window.location.hash='#/quote'">📝 Start Online Quote</button>
+            <button class="chat-opt" onclick="window.location.hash='#/contact'">✉️ Message an Agent</button>
+        `;
+        chatBody.appendChild(options);
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    async function startSarahFlow() {
+        if (chatInitialized) return;
+        chatInitialized = true;
+
+        for (const msg of botMessages) {
+            const typing = showTyping();
+            await new Promise(r => setTimeout(r, msg.delay));
+            typing.remove();
+            addMessage(msg.text);
+            if (msg.hasOptions) {
+                await new Promise(r => setTimeout(r, 800));
+                addOptions();
+            }
+        }
+    }
+
+    chatToggle.addEventListener('click', () => {
+        chatWindow.classList.add('open');
+        chatToggle.style.opacity = '0';
+        chatToggle.style.pointerEvents = 'none';
+        startSarahFlow();
+    });
+
+    chatClose.addEventListener('click', () => {
+        chatWindow.classList.remove('open');
+        setTimeout(() => {
+            chatToggle.style.opacity = '1';
+            chatToggle.style.pointerEvents = 'auto';
+        }, 300);
+    });
+}
+
+// Initialize all features
+document.addEventListener('DOMContentLoaded', () => {
+    initScrollAnimations();
+    initParticles();
+    initCounters();
+    initForms();
+    initChat();
 });
