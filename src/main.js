@@ -214,7 +214,7 @@ if (document.getElementById('scrollTop')) {
 }
 
 // ─── CHATBOT LOGIC ───
-const GEMINI_API_KEY = ""; // USER: Paste your Gemini 2.5 Flash API Key here
+const GEMINI_API_KEY = "AIzaSyClROpz7o9siEi-4D_DsIk0Ikq3CgERVAo"; // Activated ⚓️
 
 function initChat() {
     const chatToggle = document.getElementById('chatToggle');
