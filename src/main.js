@@ -282,71 +282,52 @@ function initChat() {
     }
 
     async function askSarah(userText) {
-        // Construct clean contents array for the API
+        const models = [
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-8b",
+            "gemini-1.0-pro",
+            "gemini-1.5-flash-001"
+        ];
+
         const contents = [
             { role: 'user', parts: [{ text: SARAH_SYSTEM }] },
-            { role: 'model', parts: [{ text: "Understood. I'm Sarah and I'll represent Anchor Line Insurance with expertise." }] },
+            { role: 'model', parts: [{ text: "Understood. I am Sarah, your Anchor Line expert." }] },
             ...history,
             { role: 'user', parts: [{ text: userText }] }
         ];
 
-        try {
-            const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents })
+        for (const model of models) {
+            try {
+                const res = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents })
+                    }
+                );
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const reply = data.candidates[0].content.parts[0].text;
+
+                    history.push({ role: 'user', parts: [{ text: userText }] });
+                    history.push({ role: 'model', parts: [{ text: reply }] });
+                    return reply;
                 }
-            );
 
-            if (!res.ok) {
-                // If 1.5-flash is 404, fallback to gemini-pro (older but stable)
-                if (res.status === 404) return await tryProFallback(userText);
-
-                const errData = await res.json();
-                return `Error (${res.status}): ${errData.error?.message || "Check API Key."}`;
+                const err = await res.json();
+                console.warn(`Model ${model} failed:`, err);
+                // If it's not a 404, the key might have a different issue (quota/billing)
+                if (res.status !== 404) {
+                    return `Sarah encountered an issue (${res.status}): ${err.error?.message || "Check API Key settings."}`;
+                }
+            } catch (e) {
+                console.error(`Fetch error for ${model}:`, e);
             }
-
-            const data = await res.json();
-            const reply = data.candidates[0].content.parts[0].text;
-
-            // Success: update local history
-            history.push({ role: 'user', parts: [{ text: userText }] });
-            history.push({ role: 'model', parts: [{ text: reply }] });
-
-            return reply;
-        } catch (e) {
-            return "Connection trouble. Please check your internet or API key!";
         }
-    }
 
-    async function tryProFallback(userText) {
-        const contents = [
-            { role: 'user', parts: [{ text: SARAH_SYSTEM }] },
-            { role: 'model', parts: [{ text: "Understood. I'm Sarah and I'll represent Anchor Line Insurance with expertise." }] },
-            ...history,
-            { role: 'user', parts: [{ text: userText }] }
-        ];
-        try {
-            const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents })
-                }
-            );
-            if (!res.ok) return "Model not found. Please ensure your Gemini API key is active in AI Studio.";
-            const data = await res.json();
-            const reply = data.candidates[0].content.parts[0].text;
-
-            history.push({ role: 'user', parts: [{ text: userText }] });
-            history.push({ role: 'model', parts: [{ text: reply }] });
-            return reply;
-        } catch {
-            return "Connection error during model fallback.";
-        }
+        return "I'm having trouble finding a connection. Please ensure your Gemini API key is fully active in Google AI Studio.";
     }
 
     async function handleSubmit() {
