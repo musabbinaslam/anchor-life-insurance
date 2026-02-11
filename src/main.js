@@ -282,8 +282,14 @@ function initChat() {
     }
 
     async function askSarah(userText) {
-        // Build conversation with system context
         history.push({ role: 'user', parts: [{ text: userText }] });
+
+        // Build contents: system context as first turn + conversation history
+        const contents = [
+            { role: 'user', parts: [{ text: SARAH_SYSTEM }] },
+            { role: 'model', parts: [{ text: "Got it! I'm Sarah and I'll follow these guidelines." }] },
+            ...history
+        ];
 
         try {
             const res = await fetch(
@@ -291,10 +297,7 @@ function initChat() {
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        system_instruction: { parts: [{ text: SARAH_SYSTEM }] },
-                        contents: history
-                    })
+                    body: JSON.stringify({ contents })
                 }
             );
             const data = await res.json();
