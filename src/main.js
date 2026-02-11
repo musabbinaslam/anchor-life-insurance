@@ -291,7 +291,7 @@ function initChat() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: `You are Sarah, a helpful and friendly insurance expert at Anchor Line Insurance in Florida. Keep responses brief, empathetic, and human. Always encourage the user to call (239) 542-1117 for the fastest service. User says: ${userText}` }] }]
+                    contents: [{ parts: [{ text: `You are Sarah, a highly helpful, empathetic, and professional insurance expert at Anchor Line Insurance in Florida. Your goal is to answer questions about Home, Auto, Life, and Business insurance accurately but briefly. ALWAYS end your response by suggesting a quick phone call to (239) 542-1117 for the most accurate quote. If someone mentions an accident or claim, express genuine concern first. User says: ${userText}` }] }]
                 })
             });
             const data = await response.json();
@@ -311,7 +311,13 @@ function initChat() {
         const typing = showTyping();
         const responseText = await getAIResponse(text);
         if (typing) typing.remove();
+
         addMessage(responseText, 'bot');
+
+        // After Sarah speaks via AI, give the user the conversion options again
+        setTimeout(() => {
+            addOptions();
+        }, 1000);
     }
 
     async function startSarahFlow() {
