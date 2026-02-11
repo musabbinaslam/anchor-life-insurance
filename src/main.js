@@ -214,6 +214,8 @@ if (document.getElementById('scrollTop')) {
 }
 
 // ─── CHATBOT LOGIC ───
+const GEMINI_API_KEY = ""; // USER: Paste your Gemini 2.5 Flash API Key here
+
 function initChat() {
     const chatToggle = document.getElementById('chatToggle');
     const chatWindow = document.getElementById('chatWindow');
@@ -279,13 +281,45 @@ function initChat() {
         chatBody.scrollTop = chatBody.scrollHeight;
     }
 
+    async function getAIResponse(userText) {
+        if (!GEMINI_API_KEY) {
+            return "I'm sorry, I'm still learning! For specific questions, it's best to call us at (239) 542-1117 or use the 'Get a Quote' button.";
+        }
+
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: `You are Sarah, a helpful and friendly insurance expert at Anchor Line Insurance in Florida. Keep responses brief, empathetic, and human. Always encourage the user to call (239) 542-1117 for the fastest service. User says: ${userText}` }] }]
+                })
+            });
+            const data = await response.json();
+            return data.candidates[0].content.parts[0].text;
+        } catch (e) {
+            return "I'm having a little trouble connecting. Could you please give our office a call at (239) 542-1117?";
+        }
+    }
+
+    async function handleChatSubmit() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        chatInput.value = '';
+        addMessage(text, 'user');
+
+        const typing = showTyping();
+        const responseText = await getAIResponse(text);
+        if (typing) typing.remove();
+        addMessage(responseText, 'bot');
+    }
+
     async function startSarahFlow() {
         if (chatInitialized) return;
         chatInitialized = true;
 
         for (const msg of botMessages) {
             const typing = showTyping();
-            // Variable typing speed for human feel
             const waitTime = Math.min(3000, Math.max(1200, msg.text.length * 30));
             await new Promise(r => setTimeout(r, waitTime));
             typing.remove();
@@ -295,6 +329,10 @@ function initChat() {
                 addOptions();
             }
         }
+
+        // Enable input after flow
+        chatInput.readOnly = false;
+        chatSend.disabled = false;
     }
 
     chatToggle.addEventListener('click', () => {
@@ -310,6 +348,11 @@ function initChat() {
             chatToggle.style.opacity = '1';
             chatToggle.style.pointerEvents = 'auto';
         }, 300);
+    });
+
+    chatSend.addEventListener('click', handleChatSubmit);
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleChatSubmit();
     });
 }
 

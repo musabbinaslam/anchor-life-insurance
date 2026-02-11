@@ -338,17 +338,10 @@ h4 {
   color: var(--clr-text);
 }
 
-.logo-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--clr-accent);
-  animation: anchorFloat 4s ease-in-out infinite;
-}
-
-.logo-icon svg {
-  width: 28px;
-  height: 28px;
+.logo-img {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
 }
 
 .logo-text {
@@ -581,10 +574,8 @@ h4 {
 }
 
 .hero-scroll-indicator {
-  position: absolute;
-  bottom: 1.2rem;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
+  margin: 4rem auto 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -593,10 +584,9 @@ h4 {
   transition: opacity 0.3s;
 }
 
-@media (max-height: 700px) {
+@media (max-height: 850px) {
   .hero-scroll-indicator {
-    opacity: 0;
-    pointer-events: none;
+    display: none;
   }
 }
 

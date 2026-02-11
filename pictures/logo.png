@@ -1,0 +1,5 @@
+// This is a placeholder for the logo image data. 
+// I will actually use the image provided in the metadata.
+// Since I cannot "download" to a specific path from a URL easily without run_command, 
+// I will use run_command to move it if I had the path, 
+// but actually I can just reference it if I save it.

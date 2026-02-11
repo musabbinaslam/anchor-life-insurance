@@ -58,8 +58,8 @@ export function homePage() {
           <div class="stat-divider"></div>
           <div class="stat"><span class="stat-number" data-target="20" data-suffix="+">0</span><span class="stat-label">Carrier Partners</span></div>
         </div>
+        <div class="hero-scroll-indicator"><span>Scroll</span><div class="scroll-line"></div></div>
       </div>
-      <div class="hero-scroll-indicator"><span>Scroll</span><div class="scroll-line"></div></div>
     </section>
 
     <!-- SERVICE PREVIEW CARDS -->
