@@ -282,27 +282,28 @@ function initChat() {
     }
 
     async function askSarah(userText) {
-        history.push({ role: 'user', parts: [{ text: userText }] });
+        // Build contents: system context as first turn + conversation history
+        const contents = [
+            { role: 'user', parts: [{ text: SARAH_SYSTEM }] },
+            { role: 'model', parts: [{ text: "Understood. I'm ready to help with Anchor Line's Home, Auto, and Life insurance questions." }] },
+            ...history,
+            { role: 'user', parts: [{ text: userText }] }
+        ];
 
         try {
             const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        system_instruction: {
-                            parts: [{ text: SARAH_SYSTEM }]
-                        },
-                        contents: history
-                    })
+                    body: JSON.stringify({ contents })
                 }
             );
 
             if (!res.ok) {
                 const errData = await res.json();
                 console.error("Gemini API Error:", errData);
-                return `Error (${res.status}): ${errData.error?.message || "Check API Key or quota."}`;
+                return `Error (${res.status}): ${errData.error?.message || "Check API Key."}`;
             }
 
             const data = await res.json();
@@ -313,11 +314,14 @@ function initChat() {
             }
 
             const reply = data.candidates[0].content.parts[0].text;
+
+            // Add to history for real memory
+            history.push({ role: 'user', parts: [{ text: userText }] });
             history.push({ role: 'model', parts: [{ text: reply }] });
+
             return reply;
         } catch (e) {
-            console.error("Fetch failure:", e);
-            return "Connection lost. Please check your internet or API key.";
+            return "I'm having a little trouble connecting. Please check your internet or key!";
         }
     }
 
