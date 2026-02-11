@@ -282,17 +282,17 @@ function initChat() {
     }
 
     async function askSarah(userText) {
-        // Standard payload: Prime Sarah by putting her "brain" as the first message
+        // Build contents: system context inside the user message
         const contents = [
-            { role: 'user', parts: [{ text: SARAH_SYSTEM }] },
-            { role: 'model', parts: [{ text: "Understood. I'm ready to help Anchor Line clients." }] },
-            ...history,
-            { role: 'user', parts: [{ text: userText }] }
+            { role: 'user', parts: [{ text: SARAH_SYSTEM + "\n\nUser Question: " + userText }] }
         ];
+
+        // Add history correctly (alternating role: user/model)
+        history.forEach(msg => contents.push(msg));
 
         try {
             const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -305,17 +305,16 @@ function initChat() {
             if (res.ok && data.candidates && data.candidates[0].content) {
                 const reply = data.candidates[0].content.parts[0].text;
 
-                // Track conversation history
                 history.push({ role: 'user', parts: [{ text: userText }] });
                 history.push({ role: 'model', parts: [{ text: reply }] });
 
                 return reply;
             } else {
-                console.error("Gemini Details:", data);
-                return "I'm having a little trouble connecting. Please check your internet or reach out to our office directly!";
+                console.error("Gemini Error Detail:", data);
+                return "I'm having a little trouble connecting. Please check your AI Studio settings or call our office!";
             }
         } catch (e) {
-            return "Connection lost. Feel free to call us at (239) 542-1117!";
+            return "Connection lost. Please call us at (239) 542-1117 for help!";
         }
     }
 
