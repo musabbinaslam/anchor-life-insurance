@@ -342,6 +342,8 @@ h4 {
   height: 48px;
   width: auto;
   object-fit: contain;
+  /* Make the dark logo white so it pops on the navy background */
+  filter: brightness(0) invert(1);
 }
 
 .logo-text {
