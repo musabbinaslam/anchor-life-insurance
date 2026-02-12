@@ -214,7 +214,7 @@ if (document.getElementById('scrollTop')) {
 }
 
 // ─── CHATBOT LOGIC ───
-const GEMINI_KEY = "AIzaSyClROpz7o9siEi-4D_DsIk0Ikq3CgERVAo";
+const GEMINI_KEY = "AIzaSyCC0TREuC2njx7JhYTDXGlYvLLq_pyceYs";
 
 const SARAH_SYSTEM = `You are Sarah, a warm and knowledgeable insurance agent at Anchor Line Insurance, a Florida-based independent agency.
 
