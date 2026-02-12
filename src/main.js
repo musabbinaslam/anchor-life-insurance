@@ -324,17 +324,16 @@ function initChat() {
         chatInput.value = '';
 
         addMsg(text, 'user');
-        turns++;
 
         const typing = showTyping();
         const reply = await askSarah(text);
         typing.remove();
         addMsg(reply, 'bot');
 
-        // After 2+ user messages, show call/form options
-        if (turns >= 2) {
+        // Only show CTA when user asks to call, quote, or contact
+        const lower = text.toLowerCase();
+        if (/\b(call|phone|quote|contact|reach|speak|talk|message|email|number)\b/.test(lower)) {
             setTimeout(() => showCTA(), 800);
-            turns = 0; // reset so it doesn't spam on every msg after
         }
     }
 
