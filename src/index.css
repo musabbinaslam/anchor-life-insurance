@@ -339,7 +339,7 @@ h4 {
 }
 
 .logo-img {
-  height: 48px;
+  height: 64px;
   width: auto;
   object-fit: contain;
   /* Make the dark logo white so it pops on the navy background */
