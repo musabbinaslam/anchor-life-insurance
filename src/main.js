@@ -282,13 +282,18 @@ function initChat() {
     }
 
     async function askSarah(userText) {
-        // Build contents: system context inside the user message
-        const contents = [
-            { role: 'user', parts: [{ text: SARAH_SYSTEM + "\n\nUser Question: " + userText }] }
-        ];
+        // Construct history: System context must come first, followed by previous turns, then current userText.
+        const contents = [];
 
-        // Add history correctly (alternating role: user/model)
-        history.forEach(msg => contents.push(msg));
+        if (history.length === 0) {
+            // First message: include system prompt
+            contents.push({ role: 'user', parts: [{ text: SARAH_SYSTEM + "\n\nUser Question: " + userText }] });
+        } else {
+            // Continuation: follow existing history and then add current message
+            // Copy history to avoid mutation issues
+            history.forEach(h => contents.push(h));
+            contents.push({ role: 'user', parts: [{ text: userText }] });
+        }
 
         try {
             const res = await fetch(
@@ -305,12 +310,17 @@ function initChat() {
             if (res.ok && data.candidates && data.candidates[0].content) {
                 const reply = data.candidates[0].content.parts[0].text;
 
-                history.push({ role: 'user', parts: [{ text: userText }] });
+                // Track conversation history for future turns
+                const userQuestion = history.length === 0
+                    ? SARAH_SYSTEM + "\n\nUser Question: " + userText
+                    : userText;
+
+                history.push({ role: 'user', parts: [{ text: userQuestion }] });
                 history.push({ role: 'model', parts: [{ text: reply }] });
 
                 return reply;
             } else {
-                console.error("Gemini Error Detail:", data);
+                console.error("Gemini Details:", data);
                 return "I'm having a little trouble connecting. Please check your AI Studio settings or call our office!";
             }
         } catch (e) {
