@@ -1599,6 +1599,14 @@ h4 {
   line-height: 1.7;
 }
 
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: var(--clr-text);
+  margin-bottom: 1rem;
+}
+
 .footer-socials {
   display: flex;
   gap: 0.5rem;
